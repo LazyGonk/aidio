@@ -1,0 +1,12 @@
+# GPU-only inputs for requirements.lock.
+#
+# These mirror [project.optional-dependencies].gpu in pyproject.toml, but are
+# listed separately because that extra starts with `aidio[transcribe]`: a
+# self-reference, which pip-compile renders as an unhashable
+# `aidio @ file:///...` line and which makes `pip install -r requirements.lock`
+# fail under --require-hashes. Keep this file in sync with pyproject.toml.
+#
+# Install torch from the CUDA wheel index so the lock stays on the tested
+# build (cu130); plain PyPI torch on Windows is CPU-only.
+torch>=2.4,<3.0
+nvidia-cublas-cu12>=12,<13 ; sys_platform == "win32"

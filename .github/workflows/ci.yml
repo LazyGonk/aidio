@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install (CPU torch, no CUDA)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,transcribe,embed]"
+
+      - name: Lint
+        run: |
+          ruff check aidio tests scripts
+          ruff format --check aidio tests scripts
+
+      - name: Test (unit + tiny-model e2e)
+        run: pytest -v
+
+      # The wheel once shipped without static/ or templates/, which left an
+      # installed aidio-web serving nothing. Keep that from happening again.
+      - name: Wheel contains the web UI
+        run: |
+          pip wheel --no-deps -w dist .
+          python - <<'PY'
+          import glob
+          import sys
+          import zipfile
+
+          wheel = glob.glob("dist/*.whl")[0]
+          names = set(zipfile.ZipFile(wheel).namelist())
+          required = {
+              "aidio/static/app.js",
+              "aidio/static/style.css",
+              "aidio/templates/index.html",
+              "aidio/THIRD-PARTY-NOTICES.md",
+          }
+          missing = sorted(required - names)
+          if missing:
+              sys.exit(f"{wheel} is missing: {missing}")
+          print(f"{wheel}: web assets and notices present")
+          PY

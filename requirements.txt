@@ -1,0 +1,22 @@
+# Base install (mirrors pyproject.toml [project.dependencies]) plus dev tools.
+# Version ranges are the tested upper/lower bounds; the fully hash-pinned
+# lockfile for reproducible installs is requirements.lock.
+# Optional extras are installed via pyproject:
+#   pip install -e ".[transcribe]"   # Whisper + Demucs (all permissive)
+#   pip install -e ".[transcribe,embed]"  # + GPLv2+ mutagen for ID3/FLAC/M4A tags
+#   pip install -e ".[dev,transcribe]"
+fastapi>=0.115,<1.0
+uvicorn>=0.34,<1.0
+httpx>=0.28,<1.0
+pydantic>=2.10,<3.0
+python-dotenv>=1.1,<2.0
+python-multipart>=0.0.9,<1.0
+librosa>=0.11,<0.12
+soundfile>=0.13,<1.0
+numpy>=2.2,<3.0
+openai>=2.0,<3.0
+
+# dev
+ruff>=0.16
+pytest>=8.3,<10.0
+pytest-asyncio>=1.0,<2.0

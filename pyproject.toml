@@ -1,0 +1,105 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aidio"
+version = "0.2.0"
+description = "Audio analysis and lyrics transcription: OpenAI-compatible LLM analysis plus offline Whisper ASR (CUDA/CPU/ROCm) with Demucs vocals and ID3 tagging"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE.md"]
+keywords = ["audio", "llm", "whisper", "asr", "lyrics", "analysis", "demucs"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn>=0.34,<1.0",
+    "httpx>=0.28,<1.0",
+    "pydantic>=2.10,<3.0",
+    "python-dotenv>=1.1,<2.0",
+    "python-multipart>=0.0.9,<1.0",
+    "librosa>=0.11,<0.12",
+    "soundfile>=0.13,<1.0",
+    "numpy>=2.2,<3.0",
+    "openai>=2.0,<3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/LazyGonk/aidio"
+Repository = "https://github.com/LazyGonk/aidio"
+Issues = "https://github.com/LazyGonk/aidio/issues"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.16,<1.0",
+    "pytest>=8.3,<10.0",
+    "pytest-asyncio>=1.0,<2.0",
+]
+# Whisper lyrics transcription (CPU). GPU extras below supply the torch wheel.
+transcribe = [
+    "faster-whisper>=1.2,<2.0",
+    "demucs>=4.0,<5.0",
+    "soundfile>=0.13,<0.14",
+    "av>=18.1,<19",
+]
+# ID3/Vorbis/MP4 lyrics embedding. Mutagen is GPLv2+, so it is separate:
+# plain `.[transcribe]`, `.[gpu]` and `.[rocm]` stay free of copyleft code;
+# `.txt` export needs none of this.
+embed = [
+    "mutagen>=1.47,<2.0",
+]
+# NVIDIA CUDA: install torch with the cuXX wheel index, e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu130
+gpu = [
+    "aidio[transcribe]",
+    "torch>=2.4,<3.0",
+    # CTranslate2 is built against CUDA 12. Windows torch wheels may bundle
+    # cuBLAS 13, so ship the cuBLAS 12 runtime side by side for faster-whisper.
+    "nvidia-cublas-cu12>=12,<13 ; sys_platform == 'win32'",
+]
+# AMD ROCm (Linux only): install torch from the ROCm wheel index, e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/rocm6.4
+rocm = [
+    "aidio[transcribe]",
+    "torch>=2.4,<3.0 ; sys_platform == 'linux'",
+]
+
+[tool.setuptools.packages.find]
+include = ["aidio*"]
+
+# The web UI ships as data inside the package; without this the wheel contains
+# no static/ or templates/ and `aidio-web` serves nothing.
+[tool.setuptools.package-data]
+aidio = ["static/*.js", "static/*.css", "templates/*.html", "THIRD-PARTY-NOTICES.md"]
+
+[project.scripts]
+aidio = "aidio.cli:main"
+aidio-web = "aidio.run_web_app:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "e2e: end-to-end tests using the real tiny Whisper model (downloads on first run)",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
